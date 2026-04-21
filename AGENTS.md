@@ -217,7 +217,11 @@ Common query patterns:
 - "Review this week's learning" → scan `wiki/corrections/` and `wiki/log.md` for recent entries
 - "How do I use [word/expression]?" → look up `wiki/vocabulary/` or `wiki/expressions/`
 
-### 3. Lint — Health Check
+### 3. Morning Review — Daily Practice Routine
+
+When the user starts a morning review session (e.g., "morning review", "아침 복습", "루틴 시작"), read and follow the instructions in `routines/morning-review.md` exactly.
+
+### 4. Lint — Health Check
 
 Periodically check wiki health:
 - **Orphan pages**: pages with no inbound links
