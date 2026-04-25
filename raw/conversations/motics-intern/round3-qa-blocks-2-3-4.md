@@ -52,7 +52,35 @@ Have **5 well-rehearsed stories** ready — each answers multiple question patte
 - **Tier:** T1
 
 #### Answer (draft)
-_[fill in — pair the existing framing with a concrete incident]_
+
+**Story: Pitwall — agents copying context into their own voice**
+
+> [S+T, ~20s]
+> At UCL I built Pitwall. It was a multi-agent system where each agent debated an investment thesis and produced its own forecast. I owned the agent output pipeline.
+>
+> [A — the mistake, ~35s]
+> I put schema validation in from day one. Every agent output had to match a defined JSON schema, and I felt that covered me. Once it ran on real data I started seeing outputs that passed validation and were still factually wrong.
+>
+> The clearest case was around price targets. Each agent had a field for its own predicted price. The context we gave each agent also carried analyst target prices and the topic host's stated target, as reference material. What I started seeing was that the agent would sometimes just copy one of those numbers into its own prediction field. The schema was satisfied. But the speaker was wrong. The agent was reporting someone else's opinion as if it were its own forecast.
+>
+> [A — what I changed, ~35s]
+> The lesson was that schema validation only checks form. It does not check whether the content came from the right source, or whether the agent was actually doing the reasoning step instead of just parroting its context. In a domain where a confident, well-formed wrong answer is more dangerous than a missing one, that gap matters.
+>
+> So I added two more layers. Every output field had to declare its provenance. A prediction field had to carry the reasoning trace behind it, not a copy of a context span. A quoted figure had to point to the span it came from. A separate validator then checked the role of each value. Whose number is this. Who said it. Does that match the role of the field we were writing into.
+>
+> [R, ~20s]
+> That split is baked into clindiff now. Level 3 is structural validation. Levels 4 to 7 do faithfulness and grounding. And the same failure pattern shows up directly in clinical notes. A note can be perfectly structured and still attribute the patient's words to the clinician, or report a dose that was never prescribed. Catching that is a different problem from catching malformed JSON, and the system has to reflect both.
+
+**Why this works for Motics**
+- Real cost (production hallucination), real fix (system change, not just "I learned").
+- Failure mode is speaker/role confusion, which is the **exact same class** of failure Scribe has to prevent. Clinical note mis-attribution is the healthcare version of this bug.
+- Naturally bridges into clindiff's L5 Faithfulness without sounding like a sales pitch.
+
+**Practice notes**
+- Drop in the actual ticker / company name only if asked. Don't volunteer; it slows the story.
+- Pause briefly after "But the speaker was wrong." Let it land.
+- If they ask "how did you detect it", be honest: noticed during simulation runs that agents were suspiciously aligned with the host's view, then traced it back.
+- If they ask "how often", say occasional not every run, but frequent enough to be a class of failure, not a one-off.
 
 ---
 
@@ -81,7 +109,44 @@ _[fill in — tighten S1 to STAR shape with explicit Situation/Task/Action/Resul
 - **Tier:** T1
 
 #### Answer (draft)
-_[fill in — likely build from Q23 data, reframed as disagreement rather than explanation]_
+
+**Story: VRO — pushed back on a senior business stakeholder's marketing-data request**
+
+> [Headline, ~10s]
+> One example of pushing back on a senior stakeholder. At SSG.COM, a part lead from the business team asked us to add marketing data into our order volume forecasts. He was senior to me, and from a different team. So saying no needed to be careful and grounded.
+>
+> [S+T, ~15s]
+> I was building the forecasting layer for the Vehicle Resource Optimisation system. Marketing felt like a natural signal for predicting demand, so the request seemed reasonable on the surface.
+>
+> [A — investigation, ~25s]
+> Before disagreeing, I tried to make it work. I investigated every available data source and went directly to the marketing team to understand how their data was structured. Two problems came out.
+>
+> First, a timing issue. We received prediction data four weeks before execution. Marketing campaigns weren't decided that early. The data simply wouldn't exist when the model needed it.
+>
+> Second, a granularity issue. Our predictions were at individual store level. Marketing spend was applied much more broadly. Mapping the impact accurately wasn't feasible without restructuring how the entire business recorded spend.
+>
+> [A — verification, ~10s]
+> To make sure I wasn't being conservative, I ran a regression with the data we did have. The p-value wasn't significant. Even with what existed, the signal wasn't usable.
+>
+> [A — how I disagreed, ~20s]
+> I went back to the part lead and walked him through both structural problems with the regression result. I framed it around the shared goal — predicting demand accurately mattered — and separated that from the proposed solution. The numbers weren't opinion. He didn't love hearing it, but it was concrete.
+>
+> [R, ~15s]
+> He agreed to defer. The project shipped without marketing data and delivered on its targets. Looking back, that was the implicit validation. The signal we were debating about adding genuinely wasn't needed. The takeaway for me was that pushing back on someone senior works when you separate the goal from the solution, bring data instead of opinion, and show you genuinely tried to make their idea work first.
+
+**Why this works for Motics**
+- Real authority gradient (part lead, different team, senior to me). Tests the actual concern: can I be a peer at a 6-person company.
+- Data-driven pushback with a concrete signal (regression, non-significant p-value). Not opinion vs opinion.
+- Outcome was implicitly validated — the project shipped without the proposed addition and worked.
+- Final principle is reusable as the answer to Q-B10 ("how do you handle conflict") if asked separately.
+
+**Practice notes**
+- "He didn't love hearing it" is the line that makes this honest. Do not soften it.
+- Don't name the part lead. Keep it about the dynamic.
+- "Tried to make it work first" is the credibility anchor — emphasise it.
+- If they probe "what if the data had been ambiguous", be honest: I would have made the same recommendation but with more qualification, and offered to revisit if marketing data structure changed.
+
+**Revision note (2026-04-25):** Earlier draft included embellished details (director-level requester, 15-minute decision cycle, three-month retro-analysis, alternative-path proposal) that didn't match the actual incident. Reverted to verified facts: part lead from business team, 4-week prediction lead time, store-level granularity, regression p-value not significant, project shipped without marketing data successfully.
 
 ---
 

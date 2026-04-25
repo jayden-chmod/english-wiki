@@ -2,11 +2,11 @@
 title: "missing words in phrasal verbs"
 category: mistake
 tags: [phrasal-verb, incomplete-phrase]
-occurrence_count: 1
-last_occurred: 2026-04-11
+occurrence_count: 2
+last_occurred: 2026-04-25
 severity: low
 created: 2026-04-11
-updated: 2026-04-11
+updated: 2026-04-25
 ---
 
 # Missing Words in Phrasal Verbs
@@ -17,6 +17,7 @@ Dropping a key word from a phrasal verb or fixed expression, making the meaning 
 ## Occurrences
 | Date | What I wrote | Correct form | Source |
 |------|-------------|-------------|--------|
+| 2026-04-25 | One example that I kept going back | One example that I kept going back **to** | [[2026-04-25-add-up-query]] |
 | 2026-04-11 | Let's put that idea on. | Let's put that idea **on hold**. | [[2026-04-11-vocabulary-study]] |
 
 ## Related Grammar

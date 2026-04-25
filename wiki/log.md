@@ -3,6 +3,15 @@
 Chronological record of all wiki operations.
 
 ---
+## [2026-04-25] ingest | Expression Queries — "Add Up", "Keep Going Back", "Stockouts"
+- **Source**: `raw/conversations/2026-04-25-add-up-query.md`
+- **Mode**: Query-response
+- **Pages created**: 5 (1 source, 3 expressions, 1 vocabulary)
+- **Pages updated**: index.md, log.md, mistakes/missing-words-in-phrasal-verbs.md
+- **New vocabulary**: stockout
+- **New expressions**: add-up, keep-going-back-to, run-into
+- **Mistakes tracked**: missing-words-in-phrasal-verbs (added "keep going back **to**")
+
 
 ## [2026-04-21] ingest | Motics Clindiff Walkthrough Practice — Session 04
 - **Source**: `raw/conversations/motics-intern/2026-04-21-session-04.md`
