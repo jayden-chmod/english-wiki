@@ -21,20 +21,59 @@ Cross-references:
 
 ---
 
-### Q1. "How does clindiff relate to Audit Agent? Is this a prototype of Audit?"
+### Q1a. "Where would you take clindiff next? What's missing?"
 
-- **Asker:** Salinna or Harvinder (possibly James — politically loaded for him if he owns Audit)
-- **Why it matters:** Framing clindiff as "Audit prototype" is technically inaccurate AND politically risky (encroaches on whoever owns Audit). Getting this wrong can derail the role-assignment conversation later.
+- **Asker:** James or Salinna (engineering-reflection framing, non-political — replaces the original "is this a prototype of Audit" framing, which was unrealistic given the team built Audit themselves)
+- **Why it matters:** Sets up the technical follow-up tree. Each priority item is a deliberate hook into a Tier 2/3 question (Q3, Q5, Q6, Q14). Strong answer here means downstream questions feel like depth probes, not gotchas.
 - **Key angles to cover:**
-  - clindiff = Scribe QA (transcript → note fidelity)
-  - Audit = compliance judgment (note vs UK regulation) — different problem class
-  - Bridge: clindiff's L5 Faithfulness *could* feed Audit, but they are separate systems
-  - Natural handoff to Audit KG + SNOMED CT pitch (§1.7–1.9 of background)
-- **Prep status:** Well-prepped — see `background.md` §1.6. Practice the transition into the Audit KG pitch.
-- **References:** `background.md` §1.6, §1.7, §1.8
+  - **Human-in-the-loop at multiple touchpoints**, not just one gate — at minimum: transcript structuring, template structuring, relevant section extraction, eval result on disputed cases
+  - **Prose-to-JSON rule compiler** as the mechanism behind HITL #2 (template structuring) — clinician validates the compiled artifact
+  - **Empirical validation of the 9-stage decomposition claim** — biggest unverified architectural claim, links to Q3
+  - **Multi-judge ensemble** — single-judge today carries self-preference bias, links to Q5
+  - **Infrastructure debt** as appendix — CI/CD, prompt-injection defences, SSE hardening (Q14 hook)
+  - Closing logic: clinical grounding first, then architectural verification, then eval refinement
+- **Prep status:** Drafted. Practice the four HITL touchpoints as a clean four-beat list — they're the load-bearing piece.
+- **References:** `background.md` §1.5; `clindiff-walkthrough-prep.md` §3.4
 
 #### Answer (draft)
-_[fill in]_
+
+Three things, in priority order.
+
+First. Human-in-the-loop at multiple points. This is the biggest gap, and the most clinically consequential. Today's eval is LLM-only end-to-end. At minimum, four touchpoints need a clinician. Transcript structuring. Template structuring. Relevant section extraction. Final eval result on disputed cases. Each is a place where the LLM can hallucinate quietly and propagate downstream. The heaviest of the four is template structuring. It requires a prose-to-JSON rule compiler that emits machine-checkable constraints alongside the prose, so the clinician has something concrete to validate. Without HITL across all four, the rest is polish on an ungrounded system.
+
+Second. Empirical validation of the 9-stage decomposition claim. The largest unverified architectural claim in the submission. I called it out in the limitations section. There's a one-week benchmark I'd run.
+
+Third. Multi-judge ensemble. Today's eval is single-judge, which carries self-preference bias. Adding a second model and computing inter-judge agreement makes the signal more honest.
+
+Beyond those three, infrastructure debt. CI/CD, prompt-injection defences, SSE hardening. Sprint shortcuts, not design choices. They'd come early in a proper buildout.
+
+That's the order I'd work in. Clinical grounding first, then architectural verification, then eval refinement.
+
+---
+
+### Q1b. "If you extended clindiff toward Audit, what would change?"
+
+- **Asker:** James or Harvinder (this is where the Audit KG vision actually lands — the original Q7 trojan-horse routing is still valid as a depth follow-up, but Q1b is the natural opener)
+- **Why it matters:** Politically the most sensitive question in Block 1. If Audit has an internal owner, this answer must (a) demonstrate substantive vision, (b) not encroach on that owner's territory, (c) leave a collaborative posture. Get this right and Audit-related Tier 2/3 questions become invitations rather than tests.
+- **Key angles to cover:**
+  - **Layer 1 — Structural transfer:** clindiff's methodology (decomposition, dimension separation, controlled variance) carries directly to Audit. Same shape: note vs instructions / note vs regulation
+  - **Layer 2 — Ontology + KG:** build regulatory ontology ourselves (NICE, CQC, GMC). LLM does entity extraction with ontology schema in context. Audit step is conformance check against ontology, not free LLM judgment. SNOMED CT as terminology backbone (NHS-mandated, OWL 2 EL)
+  - **Layer 3 — Longitudinal care tracker:** SNOMED relations + NICE temporal pathways → system surfaces pending actions, imminent deadlines, overdue obligations. Reframes Audit from snapshot compliance into care-continuity layer
+  - **Closing deference:** "before going deeper" — signals strong vision but defers to internal Audit owner before pushing further
+- **Prep status:** Drafted. The three-layer structure is the load-bearing piece — practice the layer transitions so they sound deliberate, not stacked.
+- **References:** `background.md` §1.7 (KG-augmented approach), §1.8 (pitch script), §1.9 (anticipated pushback)
+
+#### Answer (draft)
+
+A lot, actually. Three layers.
+
+First. The structural transfer is direct. clindiff evaluates whether a note follows the template by interpreting the instructions correctly. Audit evaluates whether a note follows regulation by interpreting compliance requirements correctly. Same shape. Decomposition, dimension separation, controlled variance. Those all carry over.
+
+Second. Where I'd go beyond clindiff. Bring in an ontology and a knowledge graph. We build the ontology of regulatory and clinical-pathway requirements ourselves. NICE, CQC, GMC. The LLM does what it's good at. Entity extraction from the note, with the ontology schema in context to constrain extraction. The audit step then becomes a conformance check between extracted entities and the ontology, not a free LLM judgment. SNOMED CT sits underneath as the terminology backbone, NHS-mandated and OWL-2-EL based.
+
+Third. Beyond pointwise compliance. Reading SNOMED CT, I noticed it points past pure terminology. There's structure that captures relationships between diagnoses, actions, and indicated next steps. Layer NICE guidelines on top for temporal pathway logic, and Audit extends into a longitudinal care tracker. Each clinical event recorded against the ontology. The system surfaces pending actions, imminent deadlines, and overdue obligations. That turns Audit from a snapshot compliance check into an ongoing care-continuity layer.
+
+That's my full take. Whether any of it lines up with where Audit is heading internally is something I'd want to hear from you before going deeper.
 
 ---
 
@@ -67,7 +106,24 @@ _[fill in]_
 - **References:** `background.md` §1.5 (Empirical Validation of Decomposition Gains); `clindiff-walkthrough-prep.md` §3.2
 
 #### Answer (draft)
-_[fill in]_
+
+The setup is a three-way comparison. Opus single-call as the monolithic baseline. Sonnet plus Haiku decomposed across the nine stages, which is the steel-manned version of the architectural claim. Sonnet single-call as a control, to separate raw model capability from the decomposition effect.
+
+N is twenty transcript-template pairs. Engineering-relevant rather than a statistical-power claim.
+
+One framing point. Decomposition was obviously right a year ago because long-context calls degraded badly. Opus and the recent Sonnet have closed most of that gap. So the assumption deserves a re-test, not a re-statement. That's why I'd run this benchmark now.
+
+Three axes, in this order. Quality, cost, latency.
+
+Quality first because it's the gate. If quality fails, cost and latency don't matter. Per-dimension scores against ground truth. Motics's labelled data ideal, otherwise manual review by me. And honestly, the steel-man might lose. Opus single-call has full context, no inter-stage information loss.
+
+Cost next. Per-token call cost across the three conditions. Decomposition uses cheaper Haiku and Sonnet calls in volume. Opus is one expensive call.
+
+Latency last. Wall-clock per run. Easiest to measure, most likely to hold.
+
+If decomposed beats Opus on quality, the claim survives outright. If they tie on quality but decomposed wins on cost and latency, it survives as an efficiency story. If Sonnet single ties Opus single, then Opus's edge wasn't model capability, it was monolithic context. That'd be the most interesting result.
+
+I don't already know which row I land in.
 
 ---
 
@@ -84,7 +140,22 @@ _[fill in]_
 - **References:** `background.md` §1.5 (Unverified Retry Logic across 9 Stages); `clindiff-walkthrough-prep.md` §3.6; `2026-04-20-session-03.md`
 
 #### Answer (draft)
-_[fill in]_
+
+The plan is fault injection on each of the nine stages. Single-stage first, then combinations. For each injection, I'd measure four things.
+
+One. State and idempotency. Did the failed attempt leave anything behind. Partial writes, accumulator state, cache pollution that leaks into the retry.
+
+Two. Downstream propagation. When L4 retries, do L7 and L8 actually consume the retried output, not the stale one.
+
+Three. Failure detection accuracy. False negatives are the dangerous case. A stage returns garbage but gets marked successful. So I'd inject malformed outputs as well as exceptions.
+
+Four. Cost ceiling. Confirm the retry counter actually fires. Test the race conditions on it. Make sure hitting the cap alerts cleanly instead of silently dropping the run.
+
+And the failure data isn't just pass or fail. Each failure gets categorized. Schema-level, content-level, semantic. That taxonomy is what tells us whether to fix the orchestrator, the prompt, or the template itself. Without that, the test just tells you something broke. Not what to do about it.
+
+For the pipeline's final output, I'd just check it's structurally valid and the scores fall in a normal range. Not a statistical comparison. Just a sanity check that the run completed coherently.
+
+One honest caveat. This is integration-test scope. It validates the orchestrator, not whether the model itself is reliable on a given stage. That's a separate measurement problem.
 
 ---
 
@@ -266,6 +337,6 @@ _[fill in]_
 
 - **Start with Q4** (retry logic) — it's the most exposed gap and genuinely unanswered.
 - **Then Q3** (decomposition benchmark) — the most named limitation. Fluent delivery here is disproportionately valuable.
-- **Q1 and Q7 pair naturally** — practicing Q1 sets up the transition to the Audit KG pitch via Q7.
+- **Q1b is now where the Audit KG vision lands directly** — Q7 becomes a depth follow-up if asked, not the main vehicle. Q1a precedes it as the internal-extension roadmap and seeds Q3/Q5/Q6/Q14 hooks.
 - Target length per answer: **60–120 seconds spoken**. Any longer is a monologue; any shorter and it looks like a pre-canned soundbite.
 - After drafting, mark for review: which answers use **articles correctly** (see [[missing-articles]]), which slip into **casual register** (see [[informal-register-in-interview]]).
