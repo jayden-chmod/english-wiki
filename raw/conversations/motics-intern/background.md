@@ -195,7 +195,7 @@ Only the domain differs (Children's Social Care → UK Medical Regulations). Met
 
 **Pushback 1**: "SNOMED CT is huge and complex. Can you actually handle 350K concepts?"
 
-Response: "Don't need the whole thing. Motics-relevant subsets — primary care, physiotherapy, common conditions — are maybe 50-100K concepts. NHS Digital publishes specialty-specific reference sets. Reasoners like HermiT or ELK handle EL profile efficiently. We'd load only the slices we need."
+Response: "Don't need the whole thing. Motics-relevant subsets — primary care, physiotherapy, common conditions — are maybe 50-100K concepts. NHS Digital publishes specialty-specific reference sets. We'd load only the slices we need into Neo4j and pre-materialise EL inference at import time, so runtime is fast graph lookups instead of reasoner calls."
 
 **Pushback 2**: "If LLM extraction is noisy, doesn't the whole system collapse?"
 
@@ -207,7 +207,7 @@ Response: "Two differences matter. One, once a concept is normalized to a SNOMED
 
 **Pushback 4**: "Why not just stuff SNOMED CT into the LLM context and prompt for compliance?"
 
-Response: "Two hard limits. Context window — 350K concepts don't fit. Consistency — same note, multiple runs, different answers. DL reasoners are mathematically sound, so same input guarantees same output. For a regulatory audit product, that reproducibility is the value."
+Response: "Two hard limits. Context window — 350K concepts don't fit. Consistency — same note, multiple runs, different answers. With SNOMED in Neo4j, same graph state plus same Cypher query gives the same result, every time, and the query trace is the audit trail. That deterministic reproducibility is the value for a regulatory product."
 
 **Pushback 5** (the trickiest): "This sounds like overengineering. We're a 6-person startup, not a research lab."
 

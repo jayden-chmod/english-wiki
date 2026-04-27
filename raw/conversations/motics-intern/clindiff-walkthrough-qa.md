@@ -202,19 +202,18 @@ One honest caveat. This is integration-test scope. It validates the orchestrator
   - Mechanism: LLM as translator, structured output schema, **mandatory HITL approval gate on the compiled schema** (current weak point)
   - Partial AST extension from section-level to field-rule-level naturally converges with this
 - **References:** `background.md` §1.5 (Prose → JSON Rule Object Compilation; Partial AST)
-- **⚠️ REVISION NEEDED:** Answer currently covers only Layer 1 (general compliance rules → boolean conditions). Need to restructure to clearly introduce TWO layers upfront: (1) general/structural rules → boolean check, no ontology needed; (2) clinical content validation → LLM extracts relationships, ontology traversal checks them. Current draft covers layer 1 but layer 2 is only hinted at in the final sentence. Consider leading with the two-layer framing before going into the compiler detail.
 
 #### Answer (draft)
 
-> "The core idea is to minimize what the LLM actually decides. Instead of asking it to judge compliance in free text, you compile the prose rule into boolean conditions first. The LLM just fills those in.
+> "Two kinds of rules, two mechanisms. Structural and documentation rules compile to boolean conditions — that's the compiler. Clinical content rules need an ontology layer on top. I'll cover the compiler.
 >
-> The flow has two steps. First, the compiler reads the template section and extracts what needs to be checked. A rule like 'document medication changes with dosage and rationale' becomes three conditions: is a medication change stated, is the dosage specified, is the rationale given. That's the compiled output. A clinician approves it before anything runs.
+> Two steps. The compiler reads a template section and extracts what needs checking. A rule like 'document medication changes with dosage and rationale' becomes three conditions: medication change stated, dosage specified, rationale given. The clinician approves the compiled conditions before anything runs.
 >
-> Second, each statement in the note is checked against those conditions. For every statement where a medication is mentioned, the LLM answers: condition one, true or false. Condition two, true or false. Condition three, true or false. If all pass, that statement is compliant. The LLM never writes a judgment. It fills in a form it can already see the shape of — which also keeps hallucination low.
+> Then each statement in the note is checked against those conditions. The LLM answers true or false per condition — never writes a judgment, just fills a form whose shape it can see. Hallucination stays low for the same reason.
 >
-> The HITL gate is on the compiled conditions, not on the LLM's output. Fix it there, and every run after that is deterministic.
+> The HITL gate sits on the compiled conditions, not on the LLM's output. Fix it there and every run after is deterministic.
 >
-> That covers general compliance rules — structural, documentation, format. For deeper clinical validation, checking whether the facts themselves are medically sound, you need a layer on top of that. That's where the ontology comes in."
+> Clinical content validation is the other half — the ontology layer."
 
 ---
 
@@ -224,23 +223,23 @@ One honest caveat. This is integration-test scope. It validates the orchestrator
 - **Why it matters:** This is a **trojan-horse question** — answering well lets the Audit KG + SNOMED CT pitch land without a forced transition.
 - **Key angles to cover:**
   - Not "build an ontology from scratch" — **SNOMED CT** is NHS-mandated and already there
-  - LLM entity extraction → SNOMED mapping → OWL representation → DL queries
-  - Reasoner choice: **ELK** (handles OWL 2 EL, which is SNOMED's profile) — not HermiT/Pellet for this scale
-  - Regulatory rules as DL queries (GMC, NICE, GDPR) — the query trace becomes the audit trail
+  - LLM entity extraction → SNOMED mapping → Cypher query against regulatory rules → query trace as audit trail
+  - **Neo4j over a dedicated RDF reasoner**: property edges model conditional applicability cleanly; one graph engine unifies inference + validation + rule logic that traditional OWL+SHACL+SWRL stacks split across three. Considered ELK (correct EL profile fit), but pre-materialising EL inference at import time reproduces reasoner output without a standalone process.
+  - **Hands-on grounding**: working through this exact RDF→Neo4j mapping in side project `no-more-rdf` — answer comes from doing it, not reading about it
 - **Prep status:** Well-prepped — this is the core round-3 pitch. Practice landing it in <90 seconds.
 - **References:** `background.md` §1.7 (KG-augmented approach), §1.8 (pitch script), §1.9 (anticipated pushback)
 
 #### Answer (draft)
 
-> "The starting point isn't building from scratch. SNOMED CT already exists, it's NHS-mandated, and it ships in RDF format. You can migrate that directly into Neo4j. So the ontology foundation is already there.
+> "Starting point isn't building from scratch. SNOMED CT already exists, NHS-mandated, ships in RDF. Migrates straight into Neo4j.
 >
-> I'd go with Neo4j over a dedicated RDF reasoner for a few reasons. Property graph lets you attach properties to relationships, not just nodes — useful for things like 'this guideline applies under these conditions.' Cypher is more readable than SPARQL. And service integration is much simpler — Neo4j has native REST APIs and Python drivers that fit into a FastAPI stack without friction. Dedicated RDF reasoners are designed as standalone processes; getting them into production with proper observability adds significant complexity.
+> On the substrate choice — I'm working through this exact problem in a side project, `no-more-rdf`, mapping RDF, OWL, SHACL, and SWRL onto Neo4j systematically. Short version: property edges model regulatory conditional applicability cleanly, Cypher beats SPARQL for readability, and one graph engine handles inference, validation, and rule logic that traditional stacks split across three.
 >
-> On traversal: the SNOMED hierarchy can go twelve levels deep. On-demand variable-length path queries work, but at that depth they slow down under load. The better approach is to pre-materialise the transitive IS_A relationships when you import SNOMED. That's essentially what a DL reasoner does, but inside Neo4j. Then compliance checks are fast graph lookups, not deep traversals at runtime.
+> For SNOMED specifically, EL profile inference — IS_A closure, role groups, propertyChainAxiom — gets pre-materialised at import time. That replicates an ELK-style reasoner's output as a one-time cost, so runtime is fast graph lookups, not deep traversals.
 >
-> The pipeline on top is: LLM extracts clinical entities and relationships from the note, maps them to SNOMED nodes, then compliance is a Cypher query against regulatory rules encoded as relationships. The query trace is the audit trail.
+> Pipeline on top: LLM extracts clinical entities from the note, maps to SNOMED, compliance is a Cypher query against regulatory rules encoded as edges. Query trace is the audit trail.
 >
-> And the same graph extends naturally. Once you're recording clinical events as nodes against a SNOMED backbone, you can layer NICE temporal pathway logic on top — surfacing pending actions, overdue follow-ups, care continuity gaps. That's the path from a compliance checker to a longitudinal care management layer."
+> The same graph extends — clinical events recorded against SNOMED, NICE temporal pathways layered on top, and Audit becomes a longitudinal care tracker, not just a snapshot check."
 
 ---
 
@@ -257,7 +256,14 @@ One honest caveat. This is integration-test scope. It validates the orchestrator
 - **References:** `background.md` §1.5; `clindiff-walkthrough-prep.md` §3.4
 
 #### Answer (draft)
-_[fill in]_
+
+> "Three calls I'd revisit.
+>
+> The decomposition assumption. I built nine stages because long-context was unreliable when I started. Recent Sonnet and Opus have closed most of that gap. I shipped the architecture preserving an assumption I should have re-tested. That's the first one.
+>
+> The HITL gate on the compiler — I shipped it as optional. That was a pragmatism call, get the pipeline running first. Knowing how confidently LLMs hallucinate plausible-looking schemas, I'd make clinician approval mandatory from day one. The gate isn't a feature, it's a clinical-safety prerequisite.
+>
+> And single-judge eval. I knew about self-preference bias going in and accepted the cost for the sprint. Adding a second judge and computing inter-judge agreement would have made the eval more honest from the start."
 
 ---
 
@@ -277,11 +283,10 @@ _[fill in]_
 - **References:** `background.md` §1.4 (Tech Stack), §1.5 (Infrastructure Debt)
 
 #### Answer (draft)
-_[fill in]_
 
----
-
-### Q10. "How would you detect hallucinations in production, not just in eval?"
+> "Honest answer — I already had a k3s cluster running on a free-tier VM for other side projects. For a four-day take-home, using what was already set up was the obvious call. Not an architectural decision.
+>
+> For a real Motics deployment, GKE or EKS. The DAG and orchestration code are container-portable, so the migration is infra config, not an application rewrite." "How would you detect hallucinations in production, not just in eval?"
 
 - **Asker:** James (or Harvinder from clinical-safety angle)
 - **Why it matters:** Shifts the discussion from batch eval to runtime guardrails — tests production thinking.
@@ -293,7 +298,16 @@ _[fill in]_
 - **References:** `background.md` §1.2 (L5 Faithfulness), §1.5 (Compiler Hallucination & Missing HITL)
 
 #### Answer (draft)
-_[fill in]_
+
+> "Eval-time compares against ground truth. Production has no ground truth — the question is what to check against the source itself.
+>
+> Part of the mechanism is already there. clindiff today annotates each sentence in the generated note with a Faithfulness verdict against the transcript. Grounded sentences are marked inline, unsupported claims surface in a separate section. So the per-claim attribution exists at eval time.
+>
+> Two changes for production. One, runtime instead of post-hoc — the gate runs before the note ships, and unsupported claims block delivery rather than appear on a report. Two, a third verdict state. Today the check is effectively binary, supported or not. Production needs a 'cannot verify' bucket in between — ambiguous evidence flagged and routed to the clinician with the source span attached, not auto-passed and not blocked.
+>
+> That third bucket is what production thinking actually requires. Under-blocking is clinical risk, over-blocking destroys workflow trust. Different escalation, different tolerance.
+>
+> Honest caveat — the confidence thresholds need calibration on real Motics data before any of this runs."
 
 ---
 
@@ -309,7 +323,16 @@ _[fill in]_
 - **References:** `background.md` §1.5 (Clinical HITL Necessity; Compiler Hallucination)
 
 #### Answer (draft)
-_[fill in]_
+
+> "From the clinician's view, three places they show up.
+>
+> Upstream sign-off. Before eval runs, clinician approves the structured artifacts — normalized transcript, structured template, compiled boolean conditions per rule. Reviewed when something upstream changes, not every run. These gates stop hallucination from propagating downstream.
+>
+> Disputed cases during eval. Low-confidence Faithfulness flags route to a queue. Clinician sees the note statement, the LLM's true-or-false per condition, and the rule. One-click confirm or override.
+>
+> Final sign-off. Two things sit with the clinician end of pipeline — validating that any system-flagged feedback is itself correct, and signing off the note before it leaves the system. Who *first* surfaces a prose-ambiguous rule depends on the deployment — admin or clinician — but those two roles are always the clinician's.
+>
+> Honest caveat — current clindiff is LLM-only end-to-end. This is the design, not what's shipped."
 
 ---
 
@@ -325,7 +348,16 @@ _[fill in]_
 - **References:** `background.md` §1.3 (Philosophy 3: Control the Variables); `clindiff-walkthrough-prep.md` §1.1 Loom script §4
 
 #### Answer (draft)
-_[fill in]_
+
+> "Two grounding sources. The five metrics came from reading CQC documentation — what UK regulators actually evaluate clinical notes against — and from Motics's own product positioning on what scribe quality means. So the metrics are shaped by deployment context, not pulled from NLP literature.
+>
+> Correctness and Completeness map to precision and recall on the transcript-to-note problem. Correctness — did the note invent or distort anything. Completeness — did the note miss what mattered. These are the foundational signal-detection metrics for any extraction-and-summarisation problem. They sit underneath everything else.
+>
+> Compliance is template-rule conformance. CQC framing pushed it in — it's the closest thing to what Audit will eventually do at scale.
+>
+> Quality and Nuance are honest catch-alls. By the time they run, Correctness, Completeness, and Compliance have already caught the major issues. They're stylistic safety nets, named as such.
+>
+> On ROUGE and BERTScore — they measure lexical overlap with a reference summary. Clinical scribes don't have a single correct paraphrase. Two notes can be lexically very different and both correct, or lexically similar with one of them hallucinated. The metric has to operate on facts and rule conformance, not surface form."
 
 ---
 
@@ -340,7 +372,10 @@ _[fill in]_
 - **Key angles:** Define the error mode — false-positive (flags good note) vs false-negative (misses a real issue). False-negative is the clinically dangerous case. Risk is contained by (a) clindiff being *eval*, not gatekeeper, (b) clinician-in-loop, (c) audit trail preserves decision path so errors are traceable and correctable.
 
 #### Answer (draft)
-_[fill in]_
+
+> "Two error modes. False-positive — flags a good note as failing. Annoying, costs clinician time, fixable in the loop. False-negative — misses a real issue and lets the note pass. That's the clinically dangerous one.
+>
+> Three things contain that risk. clindiff is evaluation, not a gatekeeper — the clinician still owns the final sign-off. The HITL touchpoints upstream and on disputed cases mean errors get caught before they propagate. And the audit trail preserves the decision path on every claim, so when something is wrong, it's traceable and correctable, not opaque."
 
 ---
 
@@ -350,7 +385,12 @@ _[fill in]_
 - **Key angles:** Cut: CI/CD, test coverage, prompt-injection defences, real-time SSE hardening. Keep (even in 4 weeks): the 9-stage DAG shape, JSON-first schemas, metric separation — these are design choices, not sprint shortcuts.
 
 #### Answer (draft)
-_[fill in]_
+
+> "Cut were the things a four-day private sprint can defer — CI/CD, broad test coverage, prompt-injection defences, real-time SSE hardening. Sprint shortcuts, all called out in the limitations section.
+>
+> Keep, even in a four-week version — the nine-stage DAG shape, JSON-first schemas at every interface, the metric separation between deterministic checks and LLM-as-judge signals. These aren't sprint shortcuts, they're design choices. They'd be the same architecture in week one of a longer build.
+>
+> The split is the point. A four-week version isn't a four-day version with more polish. It's the same architecture with the cut items added back."
 
 ---
 
@@ -360,7 +400,12 @@ _[fill in]_
 - **Key angles:** Single-model isolates **instability vs template-prose ambiguity** — the two main variance sources. Multi-model would confound with cross-model preference bias. Appendix has full reasoning. Variance localises *which rules* in the template are prose-ambiguous and need compilation.
 
 #### Answer (draft)
-_[fill in]_
+
+> "Two variance sources matter. Model instability — same prompt, different runs, different answers. Template prose ambiguity — the rule itself is underspecified, so any judge will diverge on it.
+>
+> Single-model isolates those two. Multi-model would confound them with a third — cross-model preference bias — and you can't tell which is which.
+>
+> What variance actually tells us: when single-model variance is high on a specific rule, the rule's prose is ambiguous, not the model. That's a direct signal — the rule needs compilation into boolean conditions. It's the same hook into the prose-to-JSON compiler I mentioned earlier."
 
 ---
 
