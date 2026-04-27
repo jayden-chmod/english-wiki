@@ -89,7 +89,12 @@ That's my full take. Whether any of it lines up with where Audit is heading inte
 - **References:** `background.md` §1.2, §1.3 (philosophy 2: Decompose, Then Parallelize); `2026-04-20-session-03.md`
 
 #### Answer (draft)
-_[fill in]_
+
+> "When I've worked with LLMs, I kept hitting the same pattern. Give a model too much context at once and performance gets harder to control. There's research on this too. Long-context degradation was a documented problem at the time. So when I built clindiff, keeping each stage's context focused felt like the right call.
+>
+> The decomposition also gives you practical leverage. If one stage fails, you retry that stage, not the whole run. You can swap models per stage, optimise each one independently. And from the user side, results come in as each stage completes, so you're not waiting on the full pipeline to see anything.
+>
+> That said, recent models have gotten much stronger on long context. So this assumption probably needs revisiting, not just restating. The empirical gain is unverified. That's the first benchmark I'd run if I had a week."
 
 ---
 
@@ -109,7 +114,7 @@ _[fill in]_
 
 The setup is a three-way comparison. Opus single-call as the monolithic baseline. Sonnet plus Haiku decomposed across the nine stages, which is the steel-manned version of the architectural claim. Sonnet single-call as a control, to separate raw model capability from the decomposition effect.
 
-N is twenty transcript-template pairs. Engineering-relevant rather than a statistical-power claim.
+I'd run it on twenty transcript-template pairs. Not a statistical-power claim, just enough to be engineering-relevant.
 
 One framing point. Decomposition was obviously right a year ago because long-context calls degraded badly. Opus and the recent Sonnet have closed most of that gap. So the assumption deserves a re-test, not a re-statement. That's why I'd run this benchmark now.
 
@@ -176,7 +181,14 @@ One honest caveat. This is integration-test scope. It validates the orchestrator
 - **References:** `background.md` §1.5 (LLM-as-Judge Bias; Quantifying the bias itself)
 
 #### Answer (draft)
-_[fill in]_
+
+> "I'd think about it in two parts.
+>
+> First, reliability. The more two judges agree, the more you can trust the evaluation. High disagreement on a dimension means the signal isn't stable — you shouldn't act on it until you understand why.
+>
+> Second, diagnosing the cause. Disagreement can come from two different places. One is bias — if one judge consistently scores higher or lower across the board, that's self-preference. You can see it by comparing each judge's average score when evaluating its own model family versus others. The other cause is the template itself. If two judges diverge on the same specific dimension across many notes, the prose rule for that dimension is probably underspecified. That's a template problem, not a judge problem.
+>
+> Separating those two is what makes multi-judge actually useful. Otherwise you just average away the disagreement and lose the signal."
 
 ---
 
@@ -190,9 +202,19 @@ _[fill in]_
   - Mechanism: LLM as translator, structured output schema, **mandatory HITL approval gate on the compiled schema** (current weak point)
   - Partial AST extension from section-level to field-rule-level naturally converges with this
 - **References:** `background.md` §1.5 (Prose → JSON Rule Object Compilation; Partial AST)
+- **⚠️ REVISION NEEDED:** Answer currently covers only Layer 1 (general compliance rules → boolean conditions). Need to restructure to clearly introduce TWO layers upfront: (1) general/structural rules → boolean check, no ontology needed; (2) clinical content validation → LLM extracts relationships, ontology traversal checks them. Current draft covers layer 1 but layer 2 is only hinted at in the final sentence. Consider leading with the two-layer framing before going into the compiler detail.
 
 #### Answer (draft)
-_[fill in]_
+
+> "The core idea is to minimize what the LLM actually decides. Instead of asking it to judge compliance in free text, you compile the prose rule into boolean conditions first. The LLM just fills those in.
+>
+> The flow has two steps. First, the compiler reads the template section and extracts what needs to be checked. A rule like 'document medication changes with dosage and rationale' becomes three conditions: is a medication change stated, is the dosage specified, is the rationale given. That's the compiled output. A clinician approves it before anything runs.
+>
+> Second, each statement in the note is checked against those conditions. For every statement where a medication is mentioned, the LLM answers: condition one, true or false. Condition two, true or false. Condition three, true or false. If all pass, that statement is compliant. The LLM never writes a judgment. It fills in a form it can already see the shape of — which also keeps hallucination low.
+>
+> The HITL gate is on the compiled conditions, not on the LLM's output. Fix it there, and every run after that is deterministic.
+>
+> That covers general compliance rules — structural, documentation, format. For deeper clinical validation, checking whether the facts themselves are medically sound, you need a layer on top of that. That's where the ontology comes in."
 
 ---
 
@@ -209,7 +231,16 @@ _[fill in]_
 - **References:** `background.md` §1.7 (KG-augmented approach), §1.8 (pitch script), §1.9 (anticipated pushback)
 
 #### Answer (draft)
-_[fill in]_
+
+> "The starting point isn't building from scratch. SNOMED CT already exists, it's NHS-mandated, and it ships in RDF format. You can migrate that directly into Neo4j. So the ontology foundation is already there.
+>
+> I'd go with Neo4j over a dedicated RDF reasoner for a few reasons. Property graph lets you attach properties to relationships, not just nodes — useful for things like 'this guideline applies under these conditions.' Cypher is more readable than SPARQL. And service integration is much simpler — Neo4j has native REST APIs and Python drivers that fit into a FastAPI stack without friction. Dedicated RDF reasoners are designed as standalone processes; getting them into production with proper observability adds significant complexity.
+>
+> On traversal: the SNOMED hierarchy can go twelve levels deep. On-demand variable-length path queries work, but at that depth they slow down under load. The better approach is to pre-materialise the transitive IS_A relationships when you import SNOMED. That's essentially what a DL reasoner does, but inside Neo4j. Then compliance checks are fast graph lookups, not deep traversals at runtime.
+>
+> The pipeline on top is: LLM extracts clinical entities and relationships from the note, maps them to SNOMED nodes, then compliance is a Cypher query against regulatory rules encoded as relationships. The query trace is the audit trail.
+>
+> And the same graph extends naturally. Once you're recording clinical events as nodes against a SNOMED backbone, you can layer NICE temporal pathway logic on top — surfacing pending actions, overdue follow-ups, care continuity gaps. That's the path from a compliance checker to a longitudinal care management layer."
 
 ---
 
